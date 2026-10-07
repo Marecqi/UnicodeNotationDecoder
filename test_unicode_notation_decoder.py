@@ -1,3 +1,5 @@
+"""Testy wymagań biznesowych lokalnego dekodera notacji Unicode."""
+
 import csv
 import subprocess
 import sys
@@ -9,7 +11,10 @@ from unicode_notation_decoder import DecodeError, decode_csv
 
 
 class UnicodeNotationDecoderTests(unittest.TestCase):
+    """Chroni najważniejsze reguły eksportu danych osobowych do CSV."""
+
     def write_input(self, directory: Path, rows: list[dict[str, str]]) -> Path:
+        """Tworzy lokalny plik wejściowy, aby testy nie potrzebowały sieci ani bazy."""
         path = directory / "input.csv"
         headers = ["ROWNUM", "STATUS", "APP_FIRST_NAME", "APP_SECOND_NAME", "APP_LAST_NAME"]
         with path.open("w", encoding="utf-8", newline="") as file:
@@ -19,6 +24,7 @@ class UnicodeNotationDecoderTests(unittest.TestCase):
         return path
 
     def test_writes_unicode_notation_and_spaces(self) -> None:
+        """Sprawdza litery rozszerzone i obie spacje w pełnej nazwie osoby."""
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             input_path = self.write_input(
@@ -40,6 +46,7 @@ class UnicodeNotationDecoderTests(unittest.TestCase):
             self.assertEqual(row["LETTER15"], "")
 
     def test_example_e_ogonek(self) -> None:
+        """Utrwala wymagany przykład biznesowy: Ę trafia do LETTER1 jako U+0118."""
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             input_path = self.write_input(
@@ -55,6 +62,7 @@ class UnicodeNotationDecoderTests(unittest.TestCase):
             self.assertEqual(row["LETTER1"], "Ę -> U+0118")
 
     def test_overflow_is_an_error_by_default(self) -> None:
+        """Chroni przed cichym obcięciem nazwiska, gdy 20 komórek nie wystarcza."""
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             input_path = self.write_input(
@@ -66,6 +74,7 @@ class UnicodeNotationDecoderTests(unittest.TestCase):
                 decode_csv(input_path, directory / "output.csv", encoding="utf-8")
 
     def test_command_line_creates_output(self) -> None:
+        """Potwierdza, że operator może uruchomić gotową aplikację z terminala."""
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             input_path = self.write_input(
