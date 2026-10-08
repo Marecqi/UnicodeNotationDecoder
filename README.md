@@ -50,28 +50,28 @@ python3 unicode_notation_decoder.py dane_wejsciowe.csv dane_wyjsciowe.csv
 
 Plik [szablon_danych.csv](szablon_danych.csv) zawiera gotowy układ nagłówków.
 Skopiuj go pod nową nazwą, na przykład `moje_dane.csv`, wpisz dane w kolumnach
-`WORD1`, `WORD2` i `WORD3`, a następnie wskaż ten
-plik jako pierwszy argument programu. Kolumn `LETTER1`–`LETTER20` nie trzeba
+`WORD1`–`WORD10`, a następnie wskaż ten
+plik jako pierwszy argument programu. Kolumn `LETTER1`–`LETTER100` nie trzeba
 wypełniać: program zapisze w nich wynik dekodowania.
 
 Domyślne kodowanie wejścia i wyjścia to UTF-8 (wejście może mieć znacznik
 BOM). Opcja `--encoding` pozwala podać inne kodowanie, na przykład
 `--encoding cp1250`.
 
-Program odczytuje pola `WORD1`, `WORD2` i `WORD3`, które mogą zawierać
+Program odczytuje pola `WORD1`–`WORD10`, które mogą zawierać
 wyrazy i dane tekstowe z obsługiwanych zakresów Unicode. Obecna wersja
 programu wymaga tych nazw nagłówków we wszystkich plikach wejściowych.
 Niepuste pola łączy pojedynczą spacją; spacje znajdujące się
 wewnątrz pól są zachowywane. Każdy znak wynikowego tekstu trafia kolejno do
-kolumn `LETTER1`–`LETTER20` w formacie `Ę -> U+0118`.
+kolumn `LETTER1`–`LETTER100` w formacie `Ę -> U+0118`.
 
 Spacja jest zapisywana jednoznacznie jako `SPACE -> U+0020`, a znaki
 kontrolne jako zapis ucieczkowy, na przykład `\\u000A -> U+000A`. Pozostałe
 pola CSV są zachowywane.
 
-Jeżeli tekst ma ponad 20 znaków po połączeniu (łącznie ze spacjami),
+Jeżeli tekst ma ponad 100 znaków po połączeniu (łącznie ze spacjami),
 program kończy pracę z błędem i nie tworzy częściowego pliku. Aby świadomie
-zapisać pierwsze 20 pozycji, użyj `--overflow truncate`.
+zapisać pierwsze 100 pozycji, użyj `--overflow truncate`.
 
 ## Testy
 

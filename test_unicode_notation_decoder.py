@@ -16,7 +16,7 @@ class UnicodeNotationDecoderTests(unittest.TestCase):
     def write_input(self, directory: Path, rows: list[dict[str, str]]) -> Path:
         """Tworzy lokalny plik wejściowy, aby testy nie potrzebowały sieci ani bazy."""
         path = directory / "input.csv"
-        headers = ["ROWNUM", "WORD1", "WORD2", "WORD3"]
+        headers = ["ROWNUM"] + ["WORD{0}".format(number) for number in range(1, 11)]
         with path.open("w", encoding="utf-8", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=headers)
             writer.writeheader()
@@ -62,16 +62,46 @@ class UnicodeNotationDecoderTests(unittest.TestCase):
             self.assertEqual(row["LETTER1"], "Ę -> U+0118")
 
     def test_overflow_is_an_error_by_default(self) -> None:
-        """Chroni przed cichym obcięciem tekstu, gdy 20 komórek nie wystarcza."""
+        """Chroni przed cichym obcięciem tekstu, gdy 100 komórek nie wystarcza."""
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             input_path = self.write_input(
                 directory,
-                [{"ROWNUM": "1", "WORD1": "ABCDEFGHIJKLMNOPQRSTU", "WORD2": "", "WORD3": ""}],
+                [{"ROWNUM": "1", "WORD1": "A" * 101}],
             )
 
             with self.assertRaises(DecodeError):
                 decode_csv(input_path, directory / "output.csv", encoding="utf-8")
+
+    def test_reads_all_ten_word_columns(self) -> None:
+        """Łączy dane ze wszystkich dziesięciu pól tekstowych w ustalonej kolejności."""
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            row = {"ROWNUM": "1"}
+            row.update({"WORD{0}".format(number): chr(64 + number) for number in range(1, 11)})
+            input_path = self.write_input(directory, [row])
+            output_path = directory / "output.csv"
+
+            decode_csv(input_path, output_path, encoding="utf-8")
+
+            with output_path.open("r", encoding="utf-8", newline="") as file:
+                decoded_row = next(csv.DictReader(file))
+            self.assertEqual(decoded_row["LETTER1"], "A -> U+0041")
+            self.assertEqual(decoded_row["LETTER2"], "SPACE -> U+0020")
+            self.assertEqual(decoded_row["LETTER19"], "J -> U+004A")
+
+    def test_supports_one_hundred_characters(self) -> None:
+        """Zapisuje wynik w ostatniej dostępnej kolumnie LETTER100."""
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            input_path = self.write_input(directory, [{"ROWNUM": "1", "WORD1": "A" * 100}])
+            output_path = directory / "output.csv"
+
+            decode_csv(input_path, output_path, encoding="utf-8")
+
+            with output_path.open("r", encoding="utf-8", newline="") as file:
+                decoded_row = next(csv.DictReader(file))
+            self.assertEqual(decoded_row["LETTER100"], "A -> U+0041")
 
     def test_command_line_creates_output(self) -> None:
         """Potwierdza, że operator może uruchomić gotową aplikację z terminala."""
