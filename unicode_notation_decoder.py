@@ -17,10 +17,10 @@ from pathlib import Path
 from typing import Iterable
 
 
-# Kontrakt wejścia/wyjścia z procesem biznesowym: trzy pola tekstowe są źródłem
-# danych, a wynik musi zostać zapisany w dokładnie 20 przewidzianych polach.
-WORD_COLUMNS = ("WORD1", "WORD2", "WORD3")
-LETTER_COLUMNS = tuple("LETTER{0}".format(number) for number in range(1, 21))
+# Kontrakt wejścia/wyjścia z procesem biznesowym: dziesięć pól tekstowych jest
+# źródłem danych, a wynik musi zostać zapisany w dokładnie 100 polach.
+WORD_COLUMNS = tuple("WORD{0}".format(number) for number in range(1, 11))
+LETTER_COLUMNS = tuple("LETTER{0}".format(number) for number in range(1, 101))
 
 # Zakres jest ograniczony do bloków uzgodnionych dla tego procesu. Dzięki temu
 # nietypowy znak nie zostanie opisany jako poprawny, jeśli odbiorca nie obsługuje
@@ -76,7 +76,7 @@ def decode_text(text: str, row_number: int, overflow: str) -> list[str]:
     """Waliduje tekst i przypisuje każdą jego pozycję do jednej kolumny LETTER.
 
     Najpierw blok wykrywa nieobsługiwane znaki, aby nie powstał częściowo
-    poprawny opis tekstu. Następnie kontroluje limit 20 komórek: domyślnie
+    poprawny opis tekstu. Następnie kontroluje limit 100 komórek: domyślnie
     zatrzymuje eksport, a tryb ``truncate`` jest świadomym wyjątkiem biznesowym.
     """
     for position, character in enumerate(text, start=1):
@@ -91,7 +91,7 @@ def decode_text(text: str, row_number: int, overflow: str) -> list[str]:
         if overflow == "error":
             raise DecodeError(
                 "Wiersz {0} ma {1} znaków, a dostępnych jest tylko {2} kolumn LETTER. "
-                "Użyj --overflow truncate, aby zapisać pierwsze 20 znaków.".format(
+                "Użyj --overflow truncate, aby zapisać pierwsze 100 znaków.".format(
                     row_number, len(text), len(LETTER_COLUMNS)
                 )
             )
@@ -103,7 +103,7 @@ def decode_text(text: str, row_number: int, overflow: str) -> list[str]:
 def output_headers(input_headers: Iterable[str]) -> list[str]:
     """Chroni istniejące kolumny pliku i zapewnia komplet pól wyniku.
 
-    Umożliwia to użycie eksportu zarówno z szablonem zawierającym LETTER1–20,
+    Umożliwia to użycie eksportu zarówno z szablonem zawierającym LETTER1–100,
     jak i z plikiem, w którym kolumny wyniku trzeba dopiero dodać.
     """
     headers = list(input_headers)
@@ -158,7 +158,7 @@ def decode_csv(input_path: Path, output_path: Path, encoding: str = "utf-8-sig",
 def parse_arguments() -> argparse.Namespace:
     """Udostępnia prosty, powtarzalny sposób uruchomienia przez operatora."""
     parser = argparse.ArgumentParser(
-        description="Lokalnie zapisuje notację Unicode znaków danych tekstowych w kolumnach LETTER1–LETTER20."
+        description="Lokalnie zapisuje notację Unicode znaków danych tekstowych w kolumnach LETTER1–LETTER100."
     )
     parser.add_argument("input_csv", type=Path, help="wejściowy plik CSV")
     parser.add_argument("output_csv", type=Path, help="wyjściowy plik CSV")
@@ -167,7 +167,7 @@ def parse_arguments() -> argparse.Namespace:
         "--overflow",
         choices=("error", "truncate"),
         default="error",
-        help="reakcja na tekst dłuższy niż 20 znaków (domyślnie: error)",
+        help="reakcja na tekst dłuższy niż 100 znaków (domyślnie: error)",
     )
     return parser.parse_args()
 
