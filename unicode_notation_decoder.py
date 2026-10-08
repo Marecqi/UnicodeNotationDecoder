@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Lokalnie zapisuje notację Unicode znaków imienia i nazwiska w pliku CSV.
+"""Lokalnie zapisuje notację Unicode znaków danych tekstowych w pliku CSV.
 
-Cel biznesowy: pracownik może przekazać plik osobom lub systemom, które
-potrzebują jednoznacznego zapisu liter z nazwiska, bez wysyłania danych
-osobowych do zewnętrznej usługi. Program działa wyłącznie na lokalnych plikach
-i korzysta tylko z biblioteki standardowej Pythona.
+Cel biznesowy: użytkownik może przekazać plik osobom lub systemom, które
+potrzebują jednoznacznego zapisu liter z danych tekstowych, bez wysyłania
+danych do zewnętrznej usługi. Program działa wyłącznie na lokalnych plikach i
+korzysta tylko z biblioteki standardowej Pythona.
 """
 
 from __future__ import annotations
@@ -17,9 +17,9 @@ from pathlib import Path
 from typing import Iterable
 
 
-# Kontrakt wejścia/wyjścia z procesem biznesowym: trzy części nazwy są źródłem
+# Kontrakt wejścia/wyjścia z procesem biznesowym: trzy pola tekstowe są źródłem
 # danych, a wynik musi zostać zapisany w dokładnie 20 przewidzianych polach.
-NAME_COLUMNS = ("APP_FIRST_NAME", "APP_SECOND_NAME", "APP_LAST_NAME")
+WORD_COLUMNS = ("WORD1", "WORD2", "WORD3")
 LETTER_COLUMNS = tuple("LETTER{0}".format(number) for number in range(1, 21))
 
 # Zakres jest ograniczony do bloków uzgodnionych dla tego procesu. Dzięki temu
@@ -63,24 +63,23 @@ def unicode_notation(character: str) -> str:
     return "{0} -> U+{1:04X}".format(character_label(character), ord(character))
 
 
-def combined_name(row: dict[str, str]) -> str:
-    """Składa pełną nazwę, zachowując spacje mające znaczenie dla kolejności.
+def combined_words(row: dict[str, str]) -> str:
+    """Łączy niepuste pola tekstowe, zachowując spacje mające znaczenie.
 
-    Puste drugie imię nie tworzy dodatkowej pozycji. Pojedyncza spacja między
-    niepustymi częściami sprawia, że wynik odpowiada temu, jak dane są
-    prezentowane użytkownikowi, a nie tylko surowym kolumnom bazy.
+    Puste pole nie tworzy dodatkowej pozycji. Pojedyncza spacja między
+    niepustymi wartościami zapewnia spójny zapis danych do porównania.
     """
-    return " ".join(row.get(column, "") for column in NAME_COLUMNS if row.get(column, "") != "")
+    return " ".join(row.get(column, "") for column in WORD_COLUMNS if row.get(column, "") != "")
 
 
-def decode_name(name: str, row_number: int, overflow: str) -> list[str]:
-    """Waliduje nazwę i przypisuje każdą jej pozycję do jednej kolumny LETTER.
+def decode_text(text: str, row_number: int, overflow: str) -> list[str]:
+    """Waliduje tekst i przypisuje każdą jego pozycję do jednej kolumny LETTER.
 
     Najpierw blok wykrywa nieobsługiwane znaki, aby nie powstał częściowo
-    poprawny opis nazwiska. Następnie kontroluje limit 20 komórek: domyślnie
+    poprawny opis tekstu. Następnie kontroluje limit 20 komórek: domyślnie
     zatrzymuje eksport, a tryb ``truncate`` jest świadomym wyjątkiem biznesowym.
     """
-    for position, character in enumerate(name, start=1):
+    for position, character in enumerate(text, start=1):
         if not is_supported(character):
             raise DecodeError(
                 "Wiersz {0}, znak {1}: U+{2:04X} nie należy do obsługiwanych zakresów BMP.".format(
@@ -88,17 +87,17 @@ def decode_name(name: str, row_number: int, overflow: str) -> list[str]:
                 )
             )
 
-    if len(name) > len(LETTER_COLUMNS):
+    if len(text) > len(LETTER_COLUMNS):
         if overflow == "error":
             raise DecodeError(
                 "Wiersz {0} ma {1} znaków, a dostępnych jest tylko {2} kolumn LETTER. "
                 "Użyj --overflow truncate, aby zapisać pierwsze 20 znaków.".format(
-                    row_number, len(name), len(LETTER_COLUMNS)
+                    row_number, len(text), len(LETTER_COLUMNS)
                 )
             )
-        name = name[: len(LETTER_COLUMNS)]
+        text = text[: len(LETTER_COLUMNS)]
 
-    return [unicode_notation(character) for character in name]
+    return [unicode_notation(character) for character in text]
 
 
 def output_headers(input_headers: Iterable[str]) -> list[str]:
@@ -126,7 +125,7 @@ def decode_csv(input_path: Path, output_path: Path, encoding: str = "utf-8-sig",
         reader = csv.DictReader(source)
         if reader.fieldnames is None:
             raise DecodeError("Plik CSV nie zawiera wiersza nagłówków.")
-        missing = [column for column in NAME_COLUMNS if column not in reader.fieldnames]
+        missing = [column for column in WORD_COLUMNS if column not in reader.fieldnames]
         if missing:
             raise DecodeError("Brakuje wymaganych kolumn: {0}.".format(", ".join(missing)))
 
@@ -142,7 +141,7 @@ def decode_csv(input_path: Path, output_path: Path, encoding: str = "utf-8-sig",
                 writer = csv.DictWriter(temporary, fieldnames=headers, extrasaction="ignore")
                 writer.writeheader()
                 for row_count, row in enumerate(reader, start=1):
-                    decoded = decode_name(combined_name(row), row_count, overflow)
+                    decoded = decode_text(combined_words(row), row_count, overflow)
                     for column in LETTER_COLUMNS:
                         row[column] = ""
                     for column, notation in zip(LETTER_COLUMNS, decoded):
@@ -159,7 +158,7 @@ def decode_csv(input_path: Path, output_path: Path, encoding: str = "utf-8-sig",
 def parse_arguments() -> argparse.Namespace:
     """Udostępnia prosty, powtarzalny sposób uruchomienia przez operatora."""
     parser = argparse.ArgumentParser(
-        description="Lokalnie zapisuje notację Unicode znaków imion i nazwisk w kolumnach LETTER1–LETTER20."
+        description="Lokalnie zapisuje notację Unicode znaków danych tekstowych w kolumnach LETTER1–LETTER20."
     )
     parser.add_argument("input_csv", type=Path, help="wejściowy plik CSV")
     parser.add_argument("output_csv", type=Path, help="wyjściowy plik CSV")

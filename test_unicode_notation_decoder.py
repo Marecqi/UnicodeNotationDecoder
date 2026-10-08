@@ -16,7 +16,7 @@ class UnicodeNotationDecoderTests(unittest.TestCase):
     def write_input(self, directory: Path, rows: list[dict[str, str]]) -> Path:
         """Tworzy lokalny plik wejściowy, aby testy nie potrzebowały sieci ani bazy."""
         path = directory / "input.csv"
-        headers = ["ROWNUM", "STATUS", "APP_FIRST_NAME", "APP_SECOND_NAME", "APP_LAST_NAME"]
+        headers = ["ROWNUM", "WORD1", "WORD2", "WORD3"]
         with path.open("w", encoding="utf-8", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=headers)
             writer.writeheader()
@@ -24,12 +24,12 @@ class UnicodeNotationDecoderTests(unittest.TestCase):
         return path
 
     def test_writes_unicode_notation_and_spaces(self) -> None:
-        """Sprawdza litery rozszerzone i obie spacje w pełnej nazwie osoby."""
+        """Sprawdza litery rozszerzone i obie spacje w połączonych polach tekstowych."""
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             input_path = self.write_input(
                 directory,
-                [{"ROWNUM": "1", "STATUS": "oczekujacy", "APP_FIRST_NAME": "ĐỨA OUẾ", "APP_SECOND_NAME": "", "APP_LAST_NAME": "AGUYỄN"}],
+                [{"ROWNUM": "1", "WORD1": "ĐỨA OUẾ", "WORD2": "", "WORD3": "AGUYỄN"}],
             )
             output_path = directory / "output.csv"
 
@@ -51,7 +51,7 @@ class UnicodeNotationDecoderTests(unittest.TestCase):
             directory = Path(temporary)
             input_path = self.write_input(
                 directory,
-                [{"ROWNUM": "1", "STATUS": "ok", "APP_FIRST_NAME": "Ę", "APP_SECOND_NAME": "", "APP_LAST_NAME": ""}],
+                [{"ROWNUM": "1", "WORD1": "Ę", "WORD2": "", "WORD3": ""}],
             )
             output_path = directory / "output.csv"
 
@@ -62,12 +62,12 @@ class UnicodeNotationDecoderTests(unittest.TestCase):
             self.assertEqual(row["LETTER1"], "Ę -> U+0118")
 
     def test_overflow_is_an_error_by_default(self) -> None:
-        """Chroni przed cichym obcięciem nazwiska, gdy 20 komórek nie wystarcza."""
+        """Chroni przed cichym obcięciem tekstu, gdy 20 komórek nie wystarcza."""
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             input_path = self.write_input(
                 directory,
-                [{"ROWNUM": "1", "STATUS": "ok", "APP_FIRST_NAME": "ABCDEFGHIJKLMNOPQRSTU", "APP_SECOND_NAME": "", "APP_LAST_NAME": ""}],
+                [{"ROWNUM": "1", "WORD1": "ABCDEFGHIJKLMNOPQRSTU", "WORD2": "", "WORD3": ""}],
             )
 
             with self.assertRaises(DecodeError):
@@ -79,7 +79,7 @@ class UnicodeNotationDecoderTests(unittest.TestCase):
             directory = Path(temporary)
             input_path = self.write_input(
                 directory,
-                [{"ROWNUM": "1", "STATUS": "ok", "APP_FIRST_NAME": "Ę", "APP_SECOND_NAME": "", "APP_LAST_NAME": ""}],
+                [{"ROWNUM": "1", "WORD1": "Ę", "WORD2": "", "WORD3": ""}],
             )
             output_path = directory / "output.csv"
             script = Path(__file__).with_name("unicode_notation_decoder.py")
