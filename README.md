@@ -71,7 +71,9 @@ wypełniać: program zapisze w nich wynik dekodowania.
 
 Domyślne kodowanie wejścia i wyjścia to UTF-8 (wejście może mieć znacznik
 BOM). Opcja `--encoding` pozwala podać inne kodowanie, na przykład
-`--encoding cp1250`.
+`--encoding cp1250`. Program automatycznie obsługuje pliki CSV rozdzielane
+przecinkami lub średnikami i zapisuje plik wynikowy z takim samym separatorem
+jak w pliku wejściowym.
 
 Program odczytuje pola `WORD1`–`WORD10`, które mogą zawierać
 wyrazy i dane tekstowe z obsługiwanych zakresów Unicode. Obecna wersja

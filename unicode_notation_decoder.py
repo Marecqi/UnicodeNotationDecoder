@@ -14,13 +14,14 @@ import csv
 import os
 import tempfile
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, TextIO
 
 
 # Kontrakt wejścia/wyjścia z procesem biznesowym: dziesięć pól tekstowych jest
 # źródłem danych, a wynik musi zostać zapisany w dokładnie 100 polach.
 WORD_COLUMNS = tuple("WORD{0}".format(number) for number in range(1, 11))
 LETTER_COLUMNS = tuple("LETTER{0}".format(number) for number in range(1, 101))
+CSV_DELIMITERS = (",", ";")
 
 # Zakres jest ograniczony do bloków uzgodnionych dla tego procesu. Dzięki temu
 # nietypowy znak nie zostanie opisany jako poprawny, jeśli odbiorca nie obsługuje
@@ -110,6 +111,19 @@ def output_headers(input_headers: Iterable[str]) -> list[str]:
     return headers + [column for column in LETTER_COLUMNS if column not in headers]
 
 
+def csv_delimiter(source: TextIO) -> str:
+    """Rozpoznaje przecinek lub średnik na podstawie wiersza nagłówków.
+
+    Kontrakt programu wymaga nazw ``WORD1``–``WORD10``, więc nagłówki nie
+    zawierają separatorów jako danych. Dzięki temu wybór najczęstszego
+    dozwolonego znaku jest przewidywalny i nie zależy od treści rekordów.
+    """
+    header = source.readline()
+    source.seek(0)
+    delimiter = max(CSV_DELIMITERS, key=header.count)
+    return delimiter if header.count(delimiter) else ","
+
+
 def decode_csv(input_path: Path, output_path: Path, encoding: str = "utf-8-sig", overflow: str = "error") -> int:
     """Wykonuje bezpieczny eksport całego pliku i zwraca liczbę rekordów.
 
@@ -122,7 +136,8 @@ def decode_csv(input_path: Path, output_path: Path, encoding: str = "utf-8-sig",
         raise DecodeError("Plik wyjściowy musi mieć inną ścieżkę niż plik wejściowy.")
 
     with input_path.open("r", encoding=encoding, newline="") as source:
-        reader = csv.DictReader(source)
+        delimiter = csv_delimiter(source)
+        reader = csv.DictReader(source, delimiter=delimiter)
         if reader.fieldnames is None:
             raise DecodeError("Plik CSV nie zawiera wiersza nagłówków.")
         missing = [column for column in WORD_COLUMNS if column not in reader.fieldnames]
@@ -138,7 +153,9 @@ def decode_csv(input_path: Path, output_path: Path, encoding: str = "utf-8-sig",
                 "w", encoding=encoding, newline="", dir=output_path.parent, delete=False
             ) as temporary:
                 temporary_name = temporary.name
-                writer = csv.DictWriter(temporary, fieldnames=headers, extrasaction="ignore")
+                writer = csv.DictWriter(
+                    temporary, fieldnames=headers, extrasaction="ignore", delimiter=delimiter
+                )
                 writer.writeheader()
                 for row_count, row in enumerate(reader, start=1):
                     decoded = decode_text(combined_words(row), row_count, overflow)
