@@ -13,12 +13,12 @@ from unicode_notation_decoder import DecodeError, decode_csv
 class UnicodeNotationDecoderTests(unittest.TestCase):
     """Chroni najważniejsze reguły eksportu danych osobowych do CSV."""
 
-    def write_input(self, directory: Path, rows: list[dict[str, str]]) -> Path:
+    def write_input(self, directory: Path, rows: list[dict[str, str]], delimiter: str = ",") -> Path:
         """Tworzy lokalny plik wejściowy, aby testy nie potrzebowały sieci ani bazy."""
         path = directory / "input.csv"
         headers = ["ROWNUM"] + ["WORD{0}".format(number) for number in range(1, 11)]
         with path.open("w", encoding="utf-8", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=headers)
+            writer = csv.DictWriter(file, fieldnames=headers, delimiter=delimiter)
             writer.writeheader()
             writer.writerows(rows)
         return path
@@ -89,6 +89,27 @@ class UnicodeNotationDecoderTests(unittest.TestCase):
             self.assertEqual(decoded_row["LETTER1"], "A -> U+0041")
             self.assertEqual(decoded_row["LETTER2"], "SPACE -> U+0020")
             self.assertEqual(decoded_row["LETTER19"], "J -> U+004A")
+
+    def test_reads_and_preserves_semicolon_delimited_csv(self) -> None:
+        """Obsługuje eksport CSV rozdzielany średnikiem, np. z polskiego Excela."""
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            input_path = self.write_input(
+                directory,
+                [{"ROWNUM": "1", "WORD1": "Ę", "WORD2": "ABC"}],
+                delimiter=";",
+            )
+            output_path = directory / "output.csv"
+
+            decode_csv(input_path, output_path, encoding="utf-8")
+
+            with output_path.open("r", encoding="utf-8", newline="") as file:
+                reader = csv.DictReader(file, delimiter=";")
+                decoded_row = next(reader)
+            self.assertEqual(reader.fieldnames, ["ROWNUM"] + ["WORD{0}".format(n) for n in range(1, 11)] + ["LETTER{0}".format(n) for n in range(1, 101)])
+            self.assertEqual(decoded_row["LETTER1"], "Ę -> U+0118")
+            self.assertEqual(decoded_row["LETTER2"], "SPACE -> U+0020")
+            self.assertEqual(decoded_row["LETTER3"], "A -> U+0041")
 
     def test_supports_one_hundred_characters(self) -> None:
         """Zapisuje wynik w ostatniej dostępnej kolumnie LETTER100."""

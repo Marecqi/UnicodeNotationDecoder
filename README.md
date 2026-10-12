@@ -48,6 +48,21 @@ W katalogu repozytorium:
 python3 unicode_notation_decoder.py dane_wejsciowe.csv dane_wyjsciowe.csv
 ```
 
+### Interfejs graficzny
+
+Aby wybrać plik CSV z dysku w oknie aplikacji, uruchom:
+
+```bash
+python3 unicode_notation_decoder_gui.py
+```
+
+Kliknij **Wybierz plik…**, wskaż wejściowy plik CSV, a następnie wybierz
+miejsce zapisu albo pozostaw automatycznie zaproponowaną nazwę z końcówką
+`_unicode.csv`. W oknie można także wybrać kodowanie wejściowego pliku oraz
+zdecydować, czy tekst dłuższy niż 100 znaków ma zatrzymać eksport czy zostać
+skrócony. Interfejs korzysta wyłącznie z biblioteki standardowej Pythona i
+nie wysyła plików poza komputer.
+
 Plik [szablon_danych.csv](szablon_danych.csv) zawiera gotowy układ nagłówków.
 Skopiuj go pod nową nazwą, na przykład `moje_dane.csv`, wpisz dane w kolumnach
 `WORD1`–`WORD10`, a następnie wskaż ten
@@ -56,7 +71,9 @@ wypełniać: program zapisze w nich wynik dekodowania.
 
 Domyślne kodowanie wejścia i wyjścia to UTF-8 (wejście może mieć znacznik
 BOM). Opcja `--encoding` pozwala podać inne kodowanie, na przykład
-`--encoding cp1250`.
+`--encoding cp1250`. Program automatycznie obsługuje pliki CSV rozdzielane
+przecinkami lub średnikami i zapisuje plik wynikowy z takim samym separatorem
+jak w pliku wejściowym.
 
 Program odczytuje pola `WORD1`–`WORD10`, które mogą zawierać
 wyrazy i dane tekstowe z obsługiwanych zakresów Unicode. Obecna wersja
